@@ -1,8 +1,8 @@
 # This code will recreate figures from Enders et al 2018
-# Necessary files are listed on lines 26-28
-# Working directory is set on line 30. Files read and written here.
-# Run up to line 73 first. Then, each following section uses the "long_data" variable to create a figure, up to line 499.
-# Lines 500-520 make Figure 3 from a different data frame ("data_opt").
+# Necessary files are listed on lines 34-36
+# Working directory is set on line 31. Files read and written here.
+# Run to line 73 first. Then, each following sections uses the "long_data" variable to create a figure, up to line 545.
+# Rest of script starting at line 546 makes Figure 3 from a different data frame ("data_opt").
 
 ##############################
 # load in necessary packages #
@@ -14,13 +14,14 @@ library(ggplot2)
 library(plyr)
 library(pheatmap)
 library(dplyr)
+library(Hmisc)
 options(scipen=999, digits=4)
 
 #########################
 # read in and prep data #
 #########################
 
-# read in data, setwd or provide path to directory where files are located on line 27!!
+# read in data, setwd or provide path to directory where files are located on line 31 !!
 #
 # necessary files for this script are:
 # Output_stress_duration_optimization.csv
@@ -475,7 +476,7 @@ breaks2[1] <- min(apply(inbred[,3:42],2,function(x) min(as.numeric(na.omit(x))))
 pdf('Figure7.pdf', width=8, height=8, onefile=F)
 pheatmap(inbred[, c(3:42)],
          annotation_col = col_info,
-         cluster_rows = F,
+         cluster_rows = T,
          cluster_cols = T,
          color=my_palette,
          breaks = breaks2,
@@ -486,6 +487,58 @@ pheatmap(inbred[, c(3:42)],
          cellheight= 6,
          fontsize=6)
 dev.off()
+
+### revisions---------------------------------------------------------------------------------
+
+# correlations of traits (log2(FC) values from heatmap)
+
+temp <- inbred
+temp$combined <- rownames(inbred)
+temp$combined <- gsub("_recovery", "", temp$combined)
+
+temp <- gather(temp, key=genotype, value=value, 3:42)
+temp <- temp[,3:5]
+temp <- spread(temp, key=combined, value=value)
+
+# pearson
+temp_corr <- rcorr(as.matrix(temp[,2:12]), type="pearson")
+
+pdf('SupplementalFigure8.pdf', width=4.5, height=4, onefile = F)
+pheatmap(temp_corr$r,
+         color=colorRampPalette(c('#d7191c','#ffffbf','#2c7bb6'))(49),
+         breaks = c(seq(-1, 1, length=50)),
+         legend_breaks = c(-1,-0.5,0,0.5,1),
+         legend_labels = c(-1,-0.5,0,0.5,1),
+         display_numbers = matrix(ifelse(temp_corr$P<=0.05 & temp_corr$P>0.01, "*",
+                                         ifelse(temp_corr$P<=0.01 & temp_corr$P>0.001, "**",
+                                                ifelse(temp_corr$P<=0.001, "***",""))), nrow(temp_corr$P)),
+         cellwidth = 9,
+         cellheight= 9,
+         fontsize=6,
+         fontsize_number = 6)
+dev.off()
+
+# Normalize, then cluster.
+temp2 <- as.data.frame(apply(inbred[, 3:42], 1, 
+                             function(x)((x-min(x))/(max(x)-min(x)))))
+
+temp2 <- t(temp2)
+
+png("heatmap_normalized_01.png", width=8, height=8, units="in", res=600)
+pheatmap(temp2,
+         annotation_col = col_info,
+         cluster_rows = T,
+         cluster_cols = T,
+         color=colorRampPalette(c('#ffffbf','#2c7bb6'))(49),
+         legend_breaks = c(0,1),
+         legend_labels = c(0,1),
+         annotation_colors = anno_colors,
+         cellwidth = 6,
+         cellheight= 6,
+         fontsize=6)
+dev.off()
+
+# end of new figures for revisions ----------------------------------------------------------
 
 rm(anno_colors, breaks, breaks2, brown_avg, brown_data, col_info, fit, geno_info, inbred, kernel.texture, latitude, long_data, long_data2, 
    my_palette, population.group, row_info, slopes, stuff, temp, wide_avg)
