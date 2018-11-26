@@ -1,4 +1,5 @@
 https://doi.org/10.5281/zenodo.1553411
+[![DOI](https://zenodo.org/badge/151628212.svg)](https://zenodo.org/badge/latestdoi/151628212)
 
 # cold-phenotyping
 
